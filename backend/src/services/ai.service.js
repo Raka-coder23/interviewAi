@@ -15,6 +15,24 @@ function getErrorMessage(error) {
     return error.message || JSON.stringify(error);
 }
 
+function isGeminiQuotaExceeded(error) {
+    const rawMessage = getErrorMessage(error);
+    const lower = rawMessage.toLowerCase();
+
+    if (lower.includes("resource_exhausted")) return true;
+    if (lower.includes("quota exceeded")) return true;
+    if (lower.includes("generate_content_free_tier_requests")) return true;
+
+    try {
+        const parsed = JSON.parse(rawMessage);
+        const status = parsed?.error?.status;
+        const code = parsed?.error?.code;
+        return status === "RESOURCE_EXHAUSTED" || code === 429;
+    } catch (parseError) {
+        return false;
+    }
+}
+
 function buildFallbackResumeHtml({
     resume,
     selfDescription,
@@ -31,23 +49,74 @@ function buildFallbackResumeHtml({
   <meta charset="UTF-8" />
   <title>Generated Resume</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #111; line-height: 1.5; margin: 0; }
-    .container { padding: 24px; }
-    h1 { margin: 0 0 16px; font-size: 24px; }
-    h2 { margin: 20px 0 8px; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-    p, pre { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
-    .note { margin-top: 16px; font-size: 12px; color: #666; }
+    body {
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: #1f2937;
+      line-height: 1.5;
+      margin: 0;
+      background: #ffffff;
+    }
+    .container {
+      padding: 28px 32px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .header {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      color: #0f172a;
+      letter-spacing: 0.4px;
+    }
+    .subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #475569;
+    }
+    h2 {
+      margin: 18px 0 8px;
+      font-size: 15px;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .section {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+    p, pre {
+      margin: 0;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #64748b;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Resume</h1>
+    <div class="header">
+      <h1>Professional Resume</h1>
+      <div class="subtitle">Prepared for application review</div>
+    </div>
     <h2>Target Role</h2>
-    <p>${safeJob}</p>
+    <div class="section"><p>${safeJob}</p></div>
     <h2>Self Description</h2>
-    <p>${safeSelf}</p>
+    <div class="section"><p>${safeSelf}</p></div>
     <h2>Resume Content</h2>
-    <pre>${safeResume}</pre>
+    <div class="section"><pre>${safeResume}</pre></div>
     <p class="note">Generated using fallback template because AI quota was exceeded.</p>
   </div>
 </body>
@@ -271,10 +340,7 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
         })
     } catch (error) {
         const errorMessage = getErrorMessage(error)
-        const isQuotaError =
-            errorMessage.includes('"code":429') ||
-            errorMessage.includes("RESOURCE_EXHAUSTED") ||
-            errorMessage.toLowerCase().includes("quota")
+        const isQuotaError = isGeminiQuotaExceeded(error)
 
         if (isQuotaError) {
             const fallbackHtml = buildFallbackResumeHtml({
