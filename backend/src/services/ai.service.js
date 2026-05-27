@@ -13,6 +13,46 @@ function getErrorMessage(error) {
     return error.message || JSON.stringify(error);
 }
 
+function buildFallbackResumeHtml({
+    resume,
+    selfDescription,
+    jobDescription
+}) {
+    const safeResume = String(resume || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const safeSelf = String(selfDescription || "Not provided").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const safeJob = String(jobDescription || "Not provided").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Generated Resume</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111; line-height: 1.5; margin: 0; }
+    .container { padding: 24px; }
+    h1 { margin: 0 0 16px; font-size: 24px; }
+    h2 { margin: 20px 0 8px; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    p, pre { font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+    .note { margin-top: 16px; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Resume</h1>
+    <h2>Target Role</h2>
+    <p>${safeJob}</p>
+    <h2>Self Description</h2>
+    <p>${safeSelf}</p>
+    <h2>Resume Content</h2>
+    <pre>${safeResume}</pre>
+    <p class="note">Generated using fallback template because AI quota was exceeded.</p>
+  </div>
+</body>
+</html>
+`;
+}
+
 const interviewReportSchema = z.object({
     matchScore: z.number(),
 
@@ -212,7 +252,22 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
             }
         })
     } catch (error) {
-        throw new Error(`Gemini call failed: ${getErrorMessage(error)}`)
+        const errorMessage = getErrorMessage(error)
+        const isQuotaError =
+            errorMessage.includes('"code":429') ||
+            errorMessage.includes("RESOURCE_EXHAUSTED") ||
+            errorMessage.toLowerCase().includes("quota")
+
+        if (isQuotaError) {
+            const fallbackHtml = buildFallbackResumeHtml({
+                resume,
+                selfDescription,
+                jobDescription
+            })
+            return generatePdfFromHtml(fallbackHtml)
+        }
+
+        throw new Error(`Gemini call failed: ${errorMessage}`)
     }
 
     const cleanedText = (response.text || "")
