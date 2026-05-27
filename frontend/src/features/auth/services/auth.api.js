@@ -1,6 +1,6 @@
 import axios from 'axios'
  const api=axios.create({
-  baseURL:"http://localhost:3000"||"https://interviewai-svlt.onrender.com",
+  baseURL:"https://interviewai-svlt.onrender.com",
   withCredentials:true
  })
 export async function register({username,email,password}) {
