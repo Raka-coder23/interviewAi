@@ -24,6 +24,7 @@
     "mongoose": "^9.6.2",
     "multer": "^2.1.1",
     "nodemon": "^3.1.14",
+    "path": "^0.12.7",
     "pdf-parse": "^2.4.5",
     "puppeteer": "^25.1.0",
     "zod": "^4.4.3",
