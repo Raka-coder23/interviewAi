@@ -7,6 +7,12 @@ const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
 });
 
+function getErrorMessage(error) {
+    if (!error) return "Unknown error";
+    if (typeof error === "string") return error;
+    return error.message || JSON.stringify(error);
+}
+
 const interviewReportSchema = z.object({
     matchScore: z.number(),
 
@@ -174,6 +180,10 @@ async function generatePdfFromHtml(htmlContent) {
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
      console.log("enter in pr")
 
+    if (!process.env.GOOGLE_GENAI_API_KEY) {
+        throw new Error("GOOGLE_GENAI_API_KEY is not set on server")
+    }
+
     const resumePdfSchema = z.object({
         html: z.string().describe("The HTML content of the resume which can be converted to PDF using any library like puppeteer")
     })
@@ -191,35 +201,46 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
                         The resume should not be so lengthy, it should ideally be 1-2 pages long when converted to PDF. Focus on quality rather than quantity and make sure to include all the relevant information that can increase the candidate's chances of getting an interview call for the given job description.
                     `
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: zodToJsonSchema(resumePdfSchema),
-        }
-    })
+    let response
+    try {
+        response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: zodToJsonSchema(resumePdfSchema),
+            }
+        })
+    } catch (error) {
+        throw new Error(`Gemini call failed: ${getErrorMessage(error)}`)
+    }
 
-     console.log(response)
-    const cleanedText = response.text
-    .replace(/```json/g, "")
-    .replace(/```/g, "")
-    .trim()
+    const cleanedText = (response.text || "")
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim()
 
-const jsonContent = JSON.parse(cleanedText)
-     console.log(jsonContent)
-  try {
+    if (!cleanedText) {
+        throw new Error("Gemini returned empty resume payload")
+    }
 
-    const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
+    let jsonContent
+    try {
+        jsonContent = JSON.parse(cleanedText)
+    } catch (error) {
+        throw new Error(`Failed to parse Gemini JSON: ${getErrorMessage(error)}`)
+    }
 
-    return pdfBuffer
+    if (!jsonContent?.html) {
+        throw new Error("Gemini response missing 'html' field")
+    }
 
-} catch (error) {
-
-    console.log("PDF GENERATION ERROR:", error)
-
-    throw error
-}
+    try {
+        const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
+        return pdfBuffer
+    } catch (error) {
+        throw new Error(`PDF generation failed: ${getErrorMessage(error)}`)
+    }
 
 }
 
