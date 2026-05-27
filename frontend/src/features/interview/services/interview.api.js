@@ -88,30 +88,7 @@ export const generateResumePdf = async ({
             }
         )
 
-        const file = new Blob(
-            [response.data],
-            {
-                type: "application/pdf"
-            }
-        )
-
-        const fileURL =
-            window.URL.createObjectURL(file)
-
-        const link =
-            document.createElement("a")
-
-        link.href = fileURL
-
-        link.download = "resume.pdf"
-
-        document.body.appendChild(link)
-
-        link.click()
-
-        link.remove()
-
-        window.URL.revokeObjectURL(fileURL)
+        return response.data
 
     } catch (error) {
 
@@ -120,5 +97,6 @@ export const generateResumePdf = async ({
             error
         )
 
+        throw error
     }
 }

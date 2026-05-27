@@ -90,9 +90,38 @@ const getResumePdf = async (
 
     try {
 
-        await generateResumePdf({
-            interviewReportId
-        })
+        const pdfBlob =
+            await generateResumePdf({
+                interviewReportId
+            })
+
+        const url =
+            window.URL.createObjectURL(
+                new Blob(
+                    [pdfBlob],
+                    {
+                        type: "application/pdf"
+                    }
+                )
+            )
+
+        const link =
+            document.createElement("a")
+
+        link.href = url
+
+        link.setAttribute(
+            "download",
+            `resume_${interviewReportId}.pdf`
+        )
+
+        document.body.appendChild(link)
+
+        link.click()
+
+        link.remove()
+
+        window.URL.revokeObjectURL(url)
 
     } catch (error) {
 
