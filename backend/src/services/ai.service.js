@@ -1,7 +1,8 @@
 const { GoogleGenAI } = require("@google/genai");
 const { z } = require("zod");
 const { zodToJsonSchema } = require("zod-to-json-schema");
-const puppeteer = require("puppeteer")
+const puppeteer = require("puppeteer-core")
+const chromium = require("@sparticuz/chromium")
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GOOGLE_GENAI_API_KEY
@@ -121,14 +122,27 @@ ${jobDescription}
 
     return parsed;
 }
-
 async function generatePdfFromHtml(htmlContent) {
-    const browser = await puppeteer.launch()
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" })
+
+    console.log("enter in phtml")
+
+    const browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+    })
+
+    const page = await browser.newPage()
+
+    await page.setContent(htmlContent, {
+        waitUntil: "networkidle0"
+    })
 
     const pdfBuffer = await page.pdf({
-        format: "A4", margin: {
+        format: "A4",
+        printBackground: true,
+        margin: {
             top: "20mm",
             bottom: "20mm",
             left: "15mm",
@@ -142,6 +156,7 @@ async function generatePdfFromHtml(htmlContent) {
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
+     console.log("enter in pr")
 
     const resumePdfSchema = z.object({
         html: z.string().describe("The HTML content of the resume which can be converted to PDF using any library like puppeteer")
@@ -169,14 +184,27 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
         }
     })
 
+     console.log(response)
+    const cleanedText = response.text
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim()
 
-    const jsonContent = JSON.parse(response.text)
+const jsonContent = JSON.parse(cleanedText)
+     console.log(jsonContent)
+  try {
 
     const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
 
     return pdfBuffer
 
+} catch (error) {
+
+    console.log("PDF GENERATION ERROR:", error)
+
+    throw error
 }
 
+}
 
 module.exports = { generateInterviewReport, generateResumePdf };
