@@ -73,11 +73,17 @@ async function generateResumePdfController(req, res) {
 
         const { interviewReportId } = req.params
 
+        console.log("PDF REQUEST ID:", interviewReportId)
+
         const interviewReport =
-            await interviewReportModel.findById(interviewReportId)
+            await interviewReportModel.findById(
+                interviewReportId
+            )
 
         if (!interviewReport) {
+
             return res.status(404).json({
+                success: false,
                 message: "Interview report not found."
             })
         }
@@ -88,18 +94,35 @@ async function generateResumePdfController(req, res) {
             selfDescription
         } = interviewReport
 
-        // DEBUG
-        console.log({
+        console.log("INTERVIEW REPORT:", {
             resume,
             jobDescription,
             selfDescription
         })
 
-        const pdfBuffer = await generateResumePdf({
-            resume,
-            jobDescription,
-            selfDescription
-        })
+        const safeResume =
+            resume || "No resume uploaded"
+
+        const safeJobDescription =
+            jobDescription || "No job description"
+
+        const safeSelfDescription =
+            selfDescription || "No self description"
+
+        const pdfBuffer =
+            await generateResumePdf({
+                resume: safeResume,
+                jobDescription: safeJobDescription,
+                selfDescription: safeSelfDescription
+            })
+
+        if (!pdfBuffer) {
+
+            return res.status(500).json({
+                success: false,
+                message: "Failed to generate PDF buffer"
+            })
+        }
 
         res.set({
             "Content-Type": "application/pdf",
@@ -111,7 +134,10 @@ async function generateResumePdfController(req, res) {
 
     } catch (error) {
 
-        console.log("PDF CONTROLLER ERROR:", error)
+        console.log(
+            "PDF CONTROLLER ERROR:",
+            error
+        )
 
         res.status(500).json({
             success: false,
