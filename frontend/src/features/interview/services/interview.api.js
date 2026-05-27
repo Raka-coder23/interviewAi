@@ -91,12 +91,26 @@ export const generateResumePdf = async ({
         return response.data
 
     } catch (error) {
+        let backendMessage = "PDF download failed"
+        const errorBlob = error?.response?.data
+
+        if (errorBlob instanceof Blob) {
+            try {
+                const text = await errorBlob.text()
+                const parsed = JSON.parse(text)
+                backendMessage = parsed?.message || backendMessage
+            } catch (parseError) {
+                console.log("PDF ERROR PARSE FAILED:", parseError)
+            }
+        } else if (error?.response?.data?.message) {
+            backendMessage = error.response.data.message
+        }
 
         console.log(
             "PDF DOWNLOAD ERROR:",
-            error
+            backendMessage
         )
 
-        throw error
+        throw new Error(backendMessage)
     }
 }

@@ -125,7 +125,8 @@ const getResumePdf = async (
 
     } catch (error) {
 
-        console.log(error)
+        console.log(error?.message || error)
+        alert(error?.message || "Failed to download PDF")
 
     } finally {
 
