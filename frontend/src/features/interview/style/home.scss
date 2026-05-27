@@ -414,6 +414,21 @@ body {
     color: #f8fafc;
   }
 }
+.dropzone__success {
+    color: #16a34a;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.dropzone__filename {
+    color: #4b5563;
+    font-size: 0.9rem;
+    margin-top: 6px;
+    text-align: center;
+    word-break: break-word;
+}
 
 .report-meta {
   color: #94a3b8;
