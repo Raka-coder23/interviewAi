@@ -32,9 +32,41 @@ export async function getAllInterviewReports() {
 }
 
 export const generateResumePdf = async ({ interviewReportId }) => {
-    const response = await api.post(`/api/interview/resume/pdf/${interviewReportId}`, null, {
-        responseType: "blob"
-    })
 
-    return response.data
+    try {
+
+        const response = await api.post(
+            `/api/interview/resume/pdf/${interviewReportId}`,
+            null,
+            {
+                responseType: "blob"
+            }
+        )
+
+        const file = new Blob(
+            [response.data],
+            { type: "application/pdf" }
+        )
+
+        const fileURL = window.URL.createObjectURL(file)
+
+        const link = document.createElement("a")
+
+        link.href = fileURL
+
+        link.download = "resume.pdf"
+
+        document.body.appendChild(link)
+
+        link.click()
+
+        link.remove()
+
+        window.URL.revokeObjectURL(fileURL)
+
+    } catch (error) {
+
+        console.log("PDF DOWNLOAD ERROR:", error)
+
+    }
 }

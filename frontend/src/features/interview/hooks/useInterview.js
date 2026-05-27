@@ -83,10 +83,12 @@ export const useInterview=(interviewId = null)=>{
 }
 
 const getResumePdf = async (interviewReportId) => {
+     console.log("enter")
         setLoading(true)
         let response = null
         try {
             response = await generateResumePdf({ interviewReportId })
+          console.log(response)
             const url = window.URL.createObjectURL(new Blob([ response ], { type: "application/pdf" }))
             const link = document.createElement("a")
             link.href = url
@@ -100,7 +102,6 @@ const getResumePdf = async (interviewReportId) => {
             setLoading(false)
         }
     }
-
 
  useEffect(() => {
         if (interviewId) {
