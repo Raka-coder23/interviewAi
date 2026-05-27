@@ -2,9 +2,10 @@ import React, { useState, useRef } from 'react'
 import "../style/home.scss"
 import { useInterview } from '../hooks/useInterview.js'
 import { useNavigate } from 'react-router'
+import { useAuth } from '../../auth/hooks/useAuth.js'
 
 const Home = () => {
-
+    const {handleLogout}=useAuth()
     const { loading, generateReport,reports } = useInterview()
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
@@ -12,6 +13,11 @@ const Home = () => {
 
     const navigate = useNavigate()
       console.log(reports)
+
+      const handleLogoutUser=async()=>{
+        const data = await handleLogout()
+        navigate('/login')
+      }
     const handleGenerateReport = async () => {
         const resumeFile = resumeInputRef.current.files[ 0 ]
         const data = await generateReport({ jobDescription, selfDescription, resumeFile })
@@ -33,8 +39,13 @@ const Home = () => {
             <header className='page-header'>
                 <h1>Create Your Custom <span className='highlight'>Interview Plan</span></h1>
                 <p>Let our AI analyze the job requirements and your unique profile to build a winning strategy.</p>
+                
             </header>
-
+             <button 
+             onClick={handleLogoutUser}
+             className='logout-btn'>Logout</button>
+             <br/>
+             <br/>
             {/* Main Card */}
             <div className='interview-card'>
                 <div className='interview-card__body'>
@@ -67,6 +78,10 @@ const Home = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                             </span>
                             <h2>Your Profile</h2>
+                             
+                             
+                            
+                            
                         </div>
 
                         {/* Upload Resume */}
