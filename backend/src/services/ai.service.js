@@ -124,35 +124,60 @@ ${jobDescription}
 }
 async function generatePdfFromHtml(htmlContent) {
 
-    console.log("enter in phtml")
+    console.log("ENTER PDF HTML")
 
-    const browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-    })
+    try {
 
-    const page = await browser.newPage()
+        const browser = await puppeteer.launch({
 
-    await page.setContent(htmlContent, {
-        waitUntil: "networkidle0"
-    })
+            args: [
+                ...chromium.args,
+                "--no-sandbox",
+                "--disable-setuid-sandbox"
+            ],
 
-    const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-            top: "20mm",
-            bottom: "20mm",
-            left: "15mm",
-            right: "15mm"
-        }
-    })
+            defaultViewport:
+                chromium.defaultViewport,
 
-    await browser.close()
+            executablePath:
+                await chromium.executablePath(),
 
-    return pdfBuffer
+            headless: true
+        })
+
+        const page = await browser.newPage()
+
+        await page.setContent(
+            htmlContent,
+            {
+                waitUntil: "networkidle0"
+            }
+        )
+
+        const pdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: {
+                top: "20mm",
+                bottom: "20mm",
+                left: "15mm",
+                right: "15mm"
+            }
+        })
+
+        await browser.close()
+
+        return pdfBuffer
+
+    } catch (error) {
+
+        console.log(
+            "PUPPETEER PDF ERROR:",
+            error
+        )
+
+        throw error
+    }
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
